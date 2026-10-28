@@ -44,7 +44,13 @@ from tkinter import messagebox, simpledialog, ttk
 APP = "OnStar Token Helper"
 APP_DIR = os.path.join(os.environ["LOCALAPPDATA"], "OnStarTokenHelper")
 SETTINGS = os.path.join(APP_DIR, "settings.json")
-CALLBACK = os.path.join(APP_DIR, "callback.txt")
+LOG = os.path.join(APP_DIR, "log.txt")
+LOCK_PORT = 8767  # localhost-only; held while the window is open so only one copy runs
+
+
+def callback_file(state: str) -> str:
+    """Per-session file, so a second window can never pick up this run's GM reply."""
+    return os.path.join(APP_DIR, "callback_" + "".join(c for c in state if c.isalnum() or c in "-_") + ".txt")
 
 SCHEME = "msauth.com.gm.mychevrolet"
 CLIENT_ID = "3ff30506-d242-4bed-835b-422bf992622e"
@@ -274,6 +280,12 @@ class App:
 
     # thread-safe UI helpers
     def say(self, msg):
+        try:
+            with open(LOG, "a", encoding="utf-8") as f:
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S ") + msg.strip() + "
+")
+        except OSError:
+            pass
         self.q.put(("say", msg))
 
     def pump(self):
@@ -286,7 +298,11 @@ class App:
                 self.text.configure(state="disabled")
             elif kind == "ask":
                 msg, holder, ev = val
+                self.root.deiconify()
+                self.root.lift()
+                self.root.attributes("-topmost", True)
                 holder.append(messagebox.askyesno(APP, msg, parent=self.root))
+                self.root.attributes("-topmost", False)
                 ev.set()
             elif kind == "done":
                 self.go.configure(state="normal")
@@ -394,24 +410,21 @@ class App:
 
         # 2. GM sign-in in the user's browser
         register_scheme()
-        try:
-            os.remove(CALLBACK)
-        except OSError:
-            pass
         auth_url, token_endpoint, verifier, state = start_gm_flow()
+        cb_file = callback_file(state)
         self.say("\nOpening GM's sign-in page in your browser.\n"
                  "Sign in normally. At the end your browser will ask to open\n"
                  f"'{APP}' (or pythonw) — allow it.")
         webbrowser.open(auth_url)
         end = time.time() + 600
-        while not os.path.exists(CALLBACK):
+        while not os.path.exists(cb_file):
             if time.time() > end:
                 raise RuntimeError("No sign-in received within 10 minutes")
             time.sleep(1)
         time.sleep(0.3)
-        with open(CALLBACK, encoding="utf-8") as f:
+        with open(cb_file, encoding="utf-8") as f:
             cb = f.read().strip()
-        os.remove(CALLBACK)
+        os.remove(cb_file)
         qs = urllib.parse.parse_qs(urllib.parse.urlparse(cb).query)
         if "error" in qs:
             raise RuntimeError(f"GM returned an error: {qs.get('error_description', qs['error'])[0]}")
@@ -473,9 +486,18 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1].lower().startswith(SCHEME):
         # Launched by the browser with GM's redirect: hand it to the waiting window.
         os.makedirs(APP_DIR, exist_ok=True)
-        with open(CALLBACK, "w", encoding="utf-8") as f:
+        state = urllib.parse.parse_qs(urllib.parse.urlparse(sys.argv[1]).query).get("state", ["none"])[0]
+        with open(callback_file(state), "w", encoding="utf-8") as f:
             f.write(sys.argv[1])
         return
+    lock = socket.socket()
+    try:
+        lock.bind(("127.0.0.1", LOCK_PORT))
+    except OSError:
+        tk.Tk().withdraw()
+        messagebox.showinfo(APP, "OnStar Token Helper is already open. Use that window.")
+        return
+    os.makedirs(APP_DIR, exist_ok=True)
     root = tk.Tk()
     App(root)
     root.mainloop()
