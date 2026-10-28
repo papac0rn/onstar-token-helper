@@ -282,8 +282,7 @@ class App:
     def say(self, msg):
         try:
             with open(LOG, "a", encoding="utf-8") as f:
-                f.write(time.strftime("%Y-%m-%d %H:%M:%S ") + msg.strip() + "
-")
+                f.write(time.strftime("%Y-%m-%d %H:%M:%S ") + msg.strip() + "\n")
         except OSError:
             pass
         self.q.put(("say", msg))
