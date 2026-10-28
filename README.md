@@ -1,6 +1,6 @@
 # OnStar Token Helper
 
-**Website:** https://papac0rn.github.io/onstar-token-helper/
+**Website:** https://papac0rn.github.io/onstar-token-helper/ · **Step-by-step guide with screenshots:** [Wiki](https://github.com/papac0rn/onstar-token-helper/wiki/Walkthrough)
 
 A one-click Windows tool that gets the [BigThunderSR OnStar2MQTT Home Assistant add-on](https://github.com/BigThunderSR/homeassistant-addons-onstar2mqtt) working again when its automated GM sign-in is blocked:
 
