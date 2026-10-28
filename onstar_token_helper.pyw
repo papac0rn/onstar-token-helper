@@ -364,12 +364,14 @@ class App:
         info = ha.supervisor(f"/addons/{slug}/info")
         loc = (info.get("options") or {}).get("TOKEN_LOCATION")
         if loc != token_dir:
-            self.say(f"\nOne-time change needed in the add-on:\n"
-                     f"  Settings > Add-ons > {info.get('name')} > Configuration\n"
-                     f"  Set TOKEN_LOCATION to:  {token_dir}\n"
-                     f"  Save (don't start it), then click the button here again.\n"
-                     f"(Home Assistant can only drop files into /share, not {loc}.)")
-            return
+            # HA can only drop files into /share, so point the add-on there. The other options
+            # (including its passwords) are sent back unchanged and never shown or logged.
+            self.say(f"Pointing the add-on's TOKEN_LOCATION at {token_dir} (was {loc})...")
+            opts = dict(info["options"])
+            opts["TOKEN_LOCATION"] = token_dir
+            ha.supervisor(f"/addons/{slug}/options", "post", {"options": opts})
+            if ha.supervisor(f"/addons/{slug}/info")["options"].get("TOKEN_LOCATION") != token_dir:
+                raise RuntimeError("Could not change TOKEN_LOCATION; set it by hand in the add-on's Configuration tab")
         if not any(e for e in ha.rest("/api/config/config_entries/entry") if e.get("domain") == "downloader"):
             self.say("Setting up Home Assistant's built-in Downloader (saves files into /share)...")
             flow = ha.rest("/api/config/config_entries/flow", {"handler": "downloader"})

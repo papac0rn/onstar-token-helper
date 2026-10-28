@@ -28,7 +28,7 @@ The token stays in memory on your PC and is never written to its disk.
 1. Double-click `onstar_token_helper.pyw`.
 2. Enter your HA address (e.g. `http://192.168.x.x`) and the long-lived token. They're stored in `%LOCALAPPDATA%\OnStarTokenHelper\settings.json`, with the token encrypted by Windows DPAPI (only your Windows user can read it).
 3. Click **Sign in to GM and fix the add-on**. The first run may ask you to:
-   - **Change one add-on option.** Set `TOKEN_LOCATION` to `/share/vehicle1` (the tool tells you the exact value). Home Assistant can save files into `/share` but not into `/ssl`.
+   - **Moves the add-on token folder** (automatic): sets `TOKEN_LOCATION` to `/share/vehicle1`, because Home Assistant can save files into `/share` but not into `/ssl`. Other add-on settings are left unchanged.
    - **Allow a firewall rule** (a Windows admin prompt). It lets *only* your HA box reach port 8766 on this PC.
    - **Set up Downloader.** The tool does this itself, pointing it at `/share`.
 4. Sign in to GM in the browser tab. When the browser asks to open the helper (or `pythonw`), allow it.
