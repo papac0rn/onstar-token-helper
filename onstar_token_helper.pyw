@@ -61,8 +61,6 @@ SCOPE = f"https://gmb2cprod.onmicrosoft.com/{CLIENT_ID}/Test.Read openid profile
 
 DEFAULT_PORT = 8766
 FIREWALL_RULE = "OnStar Token Helper"
-# Log lines that mean the add-on is attempting its own (blockable) browser sign-in.
-FALLBACK_MARKERS = ("Starting Xvfb", "Access Denied", "different user", "Performing full authentication")
 
 
 # ── Windows helpers ─────────────────────────────────────────────────────────
@@ -458,16 +456,14 @@ class App:
         ha.supervisor(f"/addons/{slug}/options", "post", {"boot": "auto"})
         ha.supervisor(f"/addons/{slug}/start", "post")
         self.say("Add-on started. Watching it for 2 minutes...")
+        # The add-on's log keeps earlier runs, so it can't be scanned for this run's errors.
+        # Instead rely on the add-on itself: a failed sign-in makes it exit after one attempt.
         for _ in range(24):
             time.sleep(5)
-            tail = "\n".join(ha.addon_log_tail(slug, 80))
-            if any(m in tail for m in FALLBACK_MARKERS):
-                ha.supervisor(f"/addons/{slug}/stop", "post")
-                ha.supervisor(f"/addons/{slug}/options", "post", {"boot": "manual"})
-                raise RuntimeError("The add-on ignored the token and tried its own sign-in, so it was stopped "
-                                   "(start on boot set to manual). Check the add-on log.")
             if ha.supervisor(f"/addons/{slug}/info").get("state") != "started":
-                raise RuntimeError("The add-on stopped by itself. Check its log.")
+                ha.supervisor(f"/addons/{slug}/options", "post", {"boot": "manual"})
+                raise RuntimeError("The add-on did not accept the token and stopped by itself "
+                                   "(start on boot set to manual so it won't retry). Check the add-on log.")
         self.say("\nDONE. The add-on is running on the new token. Your car's entities should return within a few minutes.\n"
                  "The token renews itself; if GM blocks it again (often ~60 days), just run this again.")
 

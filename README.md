@@ -12,7 +12,7 @@ It does the same job as the add-on docs' manual "Firefox token procedure", plus 
 2. Catches GM's `msauth.com.gm.mychevrolet://auth?code=…` redirect. The tool registers itself as that link's handler for the current Windows user.
 3. Trades the one-time code for a token set (OAuth PKCE), the same way [metheos/onstar_firefox](https://github.com/metheos/onstar_firefox) does.
 4. Hands the token to Home Assistant's built-in **Downloader** integration. The file is served once, to your HA's IP only, from a random URL. HA saves it as `/share/<folder>/microsoft_tokens.json`.
-5. Starts the add-on and watches its log for 2 minutes. If the add-on still falls back to its own automated sign-in, the tool stops it right away so GM's block isn't made worse.
+5. Starts the add-on and checks it stays running for 2 minutes. If it rejects the token, it exits after one try, and the tool turns off start-on-boot so it won't keep retrying and make GM's block worse.
 
 The token stays in memory on your PC and is never written to its disk.
 
