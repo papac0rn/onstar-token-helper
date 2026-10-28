@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OnStar Token Helper</title>
+<meta name="description" content="One-click Windows tool that gets the OnStar2MQTT Home Assistant add-on signed in again when GM blocks its automated login.">
+<style>
+  :root { --bg:#0f1216; --panel:#171b21; --line:#262c35; --text:#e6e9ee; --muted:#9aa3ae; --accent:#3fb950; --warn:#f0883e; --code:#0b0e12; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f8fa; --panel:#ffffff; --line:#d8dee4; --text:#1f2328; --muted:#59636e; --accent:#1a7f37; --warn:#bc4c00; --code:#eef1f4; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:820px; margin:0 auto; padding:48px 16px 64px; }
+  h1 { font-size:2.2rem; margin:0 0 4px; }
+  .tag { color:var(--muted); font-size:1.1rem; margin:0 0 28px; }
+  .err { font-family:ui-monospace,Consolas,monospace; background:var(--code); border-left:3px solid var(--warn); padding:10px 14px; border-radius:6px; font-size:.9rem; overflow-x:auto; }
+  .btns { display:flex; gap:12px; flex-wrap:wrap; margin:24px 0 36px; }
+  .btn { display:inline-block; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:600; border:1px solid var(--line); color:var(--text); background:var(--panel); }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  h2 { margin:40px 0 12px; font-size:1.35rem; }
+  ol.steps { list-style:none; padding:0; counter-reset:s; display:grid; gap:12px; }
+  ol.steps li { counter-increment:s; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px 14px 56px; position:relative; }
+  ol.steps li::before { content:counter(s); position:absolute; left:16px; top:14px; width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; display:grid; place-items:center; font-size:.85rem; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px; }
+  ul { padding-left:20px; }
+  code { font-family:ui-monospace,Consolas,monospace; background:var(--code); padding:1px 6px; border-radius:4px; font-size:.9em; }
+  pre { background:var(--code); padding:12px 14px; border-radius:8px; overflow-x:auto; }
+  a { color:var(--accent); }
+  footer { color:var(--muted); font-size:.9rem; margin-top:48px; border-top:1px solid var(--line); padding-top:16px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OnStar Token Helper</h1>
+  <p class="tag">Get your Chevy/GM car back into Home Assistant when GM blocks the OnStar2MQTT add-on's sign-in.</p>
+
+  <div class="err">🚫 Access Denied: GM's auth server blocked this sign-in attempt. Retrying immediately makes this worse…</div>
+
+  <p>If your <a href="https://github.com/BigThunderSR/homeassistant-addons-onstar2mqtt">OnStar2MQTT add-on</a> shows this and all your vehicle entities are <em>unavailable</em>, this tool fixes it in about two minutes. You sign in to GM yourself, in your normal browser, and the tool installs the new token into Home Assistant for you.</p>
+
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/papac0rn/onstar-token-helper/archive/refs/heads/main.zip">Download (ZIP)</a>
+    <a class="btn" href="https://github.com/papac0rn/onstar-token-helper">View on GitHub</a>
+  </div>
+
+  <h2>What happens when you click the button</h2>
+  <ol class="steps">
+    <li><strong>GM's real sign-in page opens in your browser.</strong> You sign in like normal, including the text-message code. GM sees a person, not a robot. <em>The tool never sees your GM password.</em></li>
+    <li><strong>Your browser asks to open the helper.</strong> Click <em>Open</em>. That hands the tool a one-time code, which it trades for a sign-in token.</li>
+    <li><strong>Home Assistant collects the token.</strong> HA's built-in Downloader fetches it once from your PC. Only your HA box is allowed in.</li>
+    <li><strong>The add-on restarts and checks in.</strong> The tool watches it for two minutes. Your car's sensors come back.</li>
+  </ol>
+
+  <h2>Install</h2>
+  <div class="card">
+    <ul>
+      <li>Windows 10/11 with <a href="https://www.python.org/downloads/">Python 3.10+</a> (the standard installer includes everything except one package):</li>
+    </ul>
+    <pre>pip install websockets</pre>
+    <ul>
+      <li>Unzip, then double-click <code>onstar_token_helper.pyw</code>.</li>
+      <li>First run: enter your Home Assistant address and a <strong>long-lived access token</strong> (HA → your profile → Security). It's saved encrypted for your Windows user only.</li>
+    </ul>
+  </div>
+
+  <h2>Set up automatically on first run</h2>
+  <ul>
+    <li>The add-on's <code>TOKEN_LOCATION</code> moves to <code>/share/vehicle1</code>, because Home Assistant can only save files there. Your other add-on settings stay the same.</li>
+    <li>HA's built-in <strong>Downloader</strong> integration is added, pointed at <code>/share</code>.</li>
+    <li>A Windows firewall rule lets <em>only</em> your HA box reach port 8766 on this PC. Windows asks you once to allow it.</li>
+  </ul>
+
+  <h2>Good to know</h2>
+  <ul>
+    <li>Sign in with the <strong>same GM account</strong> the add-on uses. The tool shows the account before it continues.</li>
+    <li>The add-on renews the token on its own. If GM blocks it again later, just run the tool again.</li>
+    <li>If the add-on rejects the token, it stops after one try, and the tool turns off its start-on-boot so it won't keep retrying and make GM's block worse.</li>
+  </ul>
+
+  <footer>
+    Built by <a href="https://github.com/papac0rn">papac0rn</a> with Claude. Sign-in method from <a href="https://github.com/metheos/onstar_firefox">metheos/onstar_firefox</a>; works with <a href="https://github.com/BigThunderSR/OnStarJS">BigThunderSR/OnStarJS</a> and the OnStar2MQTT add-on.
+    Unofficial — not affiliated with GM or OnStar. MIT license.
+  </footer>
+</main>
+</body>
+</html>
